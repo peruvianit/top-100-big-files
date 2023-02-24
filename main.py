@@ -5,7 +5,21 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QAction
 
+import matplotlib
+matplotlib.use('QtAgg')
+
+import random
+
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib import pyplot as plt
+
 from utils.FileHelper import FileDetails
+
+class MplCanvas(FigureCanvas):
+
+    def __init__(self):
+        fig = plt.figure()
+        super(MplCanvas, self).__init__(fig)
 
 
 class MainWindow(QMainWindow):
@@ -40,7 +54,7 @@ class MainWindow(QMainWindow):
         helpMenu.addAction(helpAct)
 
         # config windows
-        self.setGeometry(300, 300, 800, 500)
+        self.setGeometry(300, 300, 900, 700)
         self.setWindowTitle('Top Big files')
 
         # GUI elements
@@ -79,20 +93,37 @@ class MainWindow(QMainWindow):
         horizontalButtonLayout.addWidget(self.buttonDelete)
         buttonGroup.setLayout(horizontalButtonLayout)
 
-        listLabel = QLabel('Files founds')
+        listLabel = QLabel('Files')
         self.listFileField = QListWidget()
         self.listFileField.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+        self.listFileField.setFixedHeight(200)
 
-        listExternsionsLabel = QLabel('Extensions founds')
+        filesGroup = QGroupBox()
+        filesGroup.setStyleSheet("QGroupBox { border: 0px; }")
+        horizontalFilesLayout = QHBoxLayout()
+        horizontalFilesLayout.addWidget(self.listFileField)
+        filesGroup.setLayout(horizontalFilesLayout)
+
+        listExternsionsLabel = QLabel('Extensions')
         self.listExtensionsField = QListWidget()
 
         self.workFileField = QLineEdit()
         self.workFileField.setDisabled(True)
 
+        self.canvas = MplCanvas()
+
+        extensionsGroup = QGroupBox()
+        extensionsGroup.setStyleSheet("QGroupBox { border: 1px; padding:0; margin: 0}")
+
+        horizontalExtensionsLayout = QHBoxLayout()
+        horizontalExtensionsLayout.addWidget(self.listExtensionsField, stretch=1)
+        horizontalExtensionsLayout.addWidget(self.canvas, stretch=1)
+        extensionsGroup.setLayout(horizontalExtensionsLayout)
+
         formLayout.addRow(buttonPath, self.nameField)
         formLayout.addRow(None, buttonGroup)
-        formLayout.addRow(listLabel, self.listFileField)
-        formLayout.addRow(listExternsionsLabel, self.listExtensionsField)
+        formLayout.addRow(listLabel, filesGroup)
+        formLayout.addRow(listExternsionsLabel, extensionsGroup)
         formLayout.addRow(None, self.workFileField)
 
         self._verticalLayout.addLayout(formLayout)
@@ -128,6 +159,7 @@ Email  : sergioarellanodiaz@gmail.com
         self.clear_controls()
         FileDetails.clear_list_file()
         verify_top_files_big_size(self, self.nameField.text())
+        self.update_chart()
 
     def delete_files(self):
 
@@ -178,6 +210,24 @@ Email  : sergioarellanodiaz@gmail.com
 
         self.statusBar.showMessage(f"File analyzer count {FileDetails.total_files_count()} with a total of ({FileDetails.total_size_analized()}) bytes")
 
+        self.update_chart()
+
+
+    def update_chart(self):
+        extensions = []
+        value_extensions = []
+
+        for key, value in FileDetails.analizer_extensions().items():
+            extensions.append(key)
+            value_extensions.append(value)
+        self.canvas.figure.clf()
+        self.ax = self.canvas.figure.add_axes([0,0,1,1])
+        self.ax.pie(value_extensions, labels = extensions)
+
+        self.canvas.draw()
+
+
+
 def verify_top_files_big_size(mainWindows: MainWindow, path: str):
     try:
         for ele in os.listdir(path):
@@ -195,6 +245,7 @@ def verify_top_files_big_size(mainWindows: MainWindow, path: str):
                     mainWindows.repaint()
                 except FileNotFoundError:
                     print(f"Problem read the file : {path_directory}")
+
 
     except PermissionError:
         print(f"Not permission for the folder : {path}")
