@@ -30,12 +30,12 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
 
-        exportAct = QAction(QIcon('export.png'), '&Exit', self)
+        exportAct = QAction(QIcon('images/export.png'), '&Exit', self)
         exportAct.setShortcut('Ctrl+Q')
         exportAct.setStatusTip('Export json')
         exportAct.triggered.connect(QApplication.instance().quit)
 
-        exitAct = QAction(QIcon('exit.png'), '&Exit', self)
+        exitAct = QAction(QIcon('images/exit.png'), '&Exit', self)
         exitAct.setShortcut('Ctrl+Q')
         exitAct.setStatusTip('Exit application')
         exitAct.triggered.connect(QApplication.instance().quit)
