@@ -8,12 +8,11 @@ from PyQt6.QtGui import QIcon, QAction
 import matplotlib
 matplotlib.use('QtAgg')
 
-import random
-
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib import pyplot as plt
 
 from utils.FileHelper import FileDetails
+
 
 class MplCanvas(FigureCanvas):
 
@@ -55,7 +54,7 @@ class MainWindow(QMainWindow):
 
         # config windows
         self.setGeometry(300, 300, 900, 700)
-        self.setWindowTitle('Top Big files')
+        self.setWindowTitle('Top 100 Big files')
 
         # GUI elements
         # Create central widget and layout
@@ -174,8 +173,6 @@ Email  : sergioarellanodiaz@gmail.com
             for item in self.listFileField.selectedItems():
                 try:
                     file_path = item.text().replace('/','\\').split("#-->")[0].strip()
-                    print('la cancellazione fisica del file, è desattivata sul codice!!')
-                    #os.remove(file_path)
                     FileDetails.remove_file(file_path)
                     self.listFileField.takeItem(self.listFileField.row(item))
 
@@ -193,12 +190,16 @@ Email  : sergioarellanodiaz@gmail.com
         self.statusBar.clearMessage()
         self.workFileField.clear()
 
+    def human_size(self, bytes, units=[' bytes','KB','MB','GB','TB', 'PB', 'EB']):
+        """ Returns a human readable string representation of bytes """
+        return str(bytes) + units[0] if bytes < 1024 else self.human_size(bytes>>10, units[1:])
+
     def refresh_list(self, listFiles):
         self.clear_controls()
 
         # files founds
         for file in listFiles:
-            item = QListWidgetItem(f"{file.name} #--> ( {file.size} bytes)")
+            item = QListWidgetItem(f"{file.name} #--> ( {self.human_size(file.size)})")
             self.listFileField.addItem(item)
 
         # extensions founds
@@ -207,8 +208,6 @@ Email  : sergioarellanodiaz@gmail.com
             self.listExtensionsField.addItem(item)
 
         self.buttonDelete.setDisabled(False if len(listFiles) > 0 else True)
-
-        self.statusBar.showMessage(f"File analyzer count {FileDetails.total_files_count()} with a total of ({FileDetails.total_size_analized()}) bytes")
 
         self.update_chart()
 
@@ -226,29 +225,27 @@ Email  : sergioarellanodiaz@gmail.com
 
         self.canvas.draw()
 
-
-
 def verify_top_files_big_size(mainWindows: MainWindow, path: str):
-    try:
-        for ele in os.listdir(path):
-            path_directory = os.path.join(path, ele)
 
-            if os.path.isdir(path_directory):
-                verify_top_files_big_size(mainWindows, path_directory)
-            else:
-                try:
-                    file_size = os.path.getsize(path_directory)
-                    if FileDetails.add_file(FileDetails(path_directory, file_size)):
-                        mainWindows.refresh_list(FileDetails.get_list_file())
+    totalFiles = 0
+    totalSize = 0
+    for base, dirs, files in os.walk(path):
+        for file in files:
+            try:
+                path_file = os.path.join(base, file)
+                file_size = os.path.getsize(path_file)
 
-                    mainWindows.update_message(path_directory)
-                    mainWindows.repaint()
-                except FileNotFoundError:
-                    print(f"Problem read the file : {path_directory}")
+                if FileDetails.add_file(FileDetails(os.path.abspath(path_file), file_size)):
+                    mainWindows.refresh_list(FileDetails.get_list_file())
 
+                mainWindows.update_message(path_file)
+                mainWindows.repaint()
+                totalFiles += 1
+                totalSize += file_size
+                mainWindows.statusBar.showMessage(f"File analyzer count {totalFiles} with a total of ({mainWindows.human_size(totalSize)}) bytes")
 
-    except PermissionError:
-        print(f"Not permission for the folder : {path}")
+            except:
+                print(f'problemi con la lettura del file {path_file}')
 
 
 if __name__ == "__main__":

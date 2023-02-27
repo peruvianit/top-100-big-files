@@ -4,7 +4,7 @@ import os
 class FileDetails:
 
     __list_files = []
-    __max_files = 50
+    __max_files = 100
     __file_analized_count = 0
     __file_analized_size = 0
 
@@ -52,6 +52,7 @@ class FileDetails:
         for idx, item in enumerate(FileDetails.__list_files):
             if os.path.abspath(item.name) == name:
                 FileDetails.__list_files.pop(idx)
+                os.remove(name)
                 break
 
         print('Il elemento stato cancellato e rimangono nella lista ', len(FileDetails.__list_files), 'elementi' )
@@ -69,7 +70,6 @@ class FileDetails:
         extensions_files_dic = {}
         for file in FileDetails.__list_files:
             file_name, ext = os.path.splitext(file.name)
-            print(f'([{file_name}]::[{ext}]')
             if ext == '':
                 ext = "N/A"
 
